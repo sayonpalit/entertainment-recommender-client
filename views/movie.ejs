@@ -1,0 +1,181 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MovieInfo</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.2.1/cyborg/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+  </head>
+  <body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <a class="navbar-brand" href="#">Entertainment Recommender System</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor03" aria-controls="navbarColor03" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarColor03">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="/">Home<span class="sr-only">(current)</span></a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/music">Music</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/logout">Log out</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+    <div class="container">
+      <div id="movie" class="well"></div>
+    </div>
+
+    <script
+  src="https://code.jquery.com/jquery-3.1.1.min.js"
+  integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+  crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+  <script>
+    $(document).ready(() => {
+  $('#searchForm').on('submit', (e) => {
+    let searchText = $('#searchText').val();
+    getMovies(searchText);
+    e.preventDefault();
+  });
+});
+function getMovies(searchText){
+  axios.get('http://www.omdbapi.com?s='+searchText+'&apikey=b8647fce')
+    .then((response) => {
+      console.log(response);
+      let movies = response.data.Search;
+      //console.log(response.data.Search);
+      let output = '';
+      $.each(movies, (index, movie) => {
+        output += `
+          <div class="col-md-3">
+            <div class="well text-center">
+              <img src="${movie.Poster}">
+              <h5 id = "title">${movie.Title}</h5>
+              <a onclick="movieSelected('${movie.imdbID}')" class="btn btn-primary" href="/moviedetails">Movie Details</a>
+            </div>
+          </div>
+        `;
+        // title = movie.Title;
+        // console.log(title);
+      });
+      $('#movies').html(output);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+
+}
+
+function movieSelected(id){
+  sessionStorage.setItem('movieId', id);
+  window.location = 'movie.html';
+  return false;
+}
+
+var title;
+function getMovie(){
+  let movieId = sessionStorage.getItem('movieId');
+
+  axios.get('http://www.omdbapi.com?i='+movieId+'&apikey=b8647fce')
+    .then((response) => {
+      console.log(response.data.Title);
+      title = response.data.Title;
+      console.log(title);
+      let movie = response.data;
+
+      let output =`
+        <div class="row">
+          <div class="col-md-4">
+            <img src="${movie.Poster}" class="thumbnail">
+          </div>
+          <div class="col-md-8">
+            <h2>${movie.Title}</h2>
+            <ul class="list-group">
+              <li class="list-group-item"><strong>Genre:</strong> ${movie.Genre}</li>
+              <li class="list-group-item"><strong>Released:</strong> ${movie.Released}</li>
+              <li class="list-group-item"><strong>Rated:</strong> ${movie.Rated}</li>
+              <li class="list-group-item"><strong>IMDB Rating:</strong> ${movie.imdbRating}</li>
+              <li class="list-group-item"><strong>Director:</strong> ${movie.Director}</li>
+              <li class="list-group-item"><strong>Writer:</strong> ${movie.Writer}</li>
+              <li class="list-group-item"><strong>Actors:</strong> ${movie.Actors}</li>
+            </ul>
+          </div>
+        </div>
+        <div class="row">
+          <div class="well">
+            <h3>Plot</h3>
+            ${movie.Plot}
+            <hr>
+            <a href="http://imdb.com/title/${movie.imdbID}" target="_blank" class="btn btn-primary">View IMDB</a>
+            <a href="/movies" class="btn btn-default">Go Back To Search</a>
+            <button onclick="getRecc()">Get Recommendations</button>
+          </div>
+        </div>
+        <div id = "result">
+        </div>
+      `;
+      $('#movie').html(output);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+}
+</script>
+<script>
+    getMovie();
+    function getRecc(){
+      var arr=[];
+      link ="http://127.0.0.1:5000/movie?Title="+title;
+      $.get(link,function(data){
+          console.log(data);
+            // Display the returned data in browser
+        //$("#result").html(data);
+            //console.log(arr);
+    let output =`
+        <h4>Your Recommendations are:</h4>
+        <div style="width:800px; margin:0 auto;" class="row">
+            <ul class="list-group">
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[0]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[0]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[1]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[1]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[2]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[2]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[3]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[3]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[4]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[4]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[5]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[5]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[6]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[6]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[7]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[7]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[8]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[8]}</a></li>
+              <li class="list-group-item"><a href = "https://www.imdb.com/find?ref_=nv_sr_fn&q=${JSON.parse(data)[9]}&s=tt&ttype=ft&exact=true&ref_=fn_ft" target="_blank">${JSON.parse(data)[9]}</a></li>
+              </ul>
+          </div>
+        `;
+
+      $('#movie').html(output);
+
+            // var se=[];
+            
+            //for(var i=0;i<10;i++){
+              //$("#result").html(JSON.parse(data)[i]);              
+             //}
+             // console.log(se);
+            
+            //console.log(JSON.parse(data));
+        
+
+      });
+      
+       
+
+    }
+
+
+
+  </script>
+  </body>
+</html>
